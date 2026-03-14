@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PE Sourcing Suite</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <!-- jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #0a0a0a;
+      --near-black: #111111;
+      --dark: #1a1a1a;
+      --mid: #444444;
+      --muted: #888888;
+      --light-mid: #bbbbbb;
+      --border: #e0e0e0;
+      --light-bg: #f7f7f7;
+      --white: #ffffff;
+      --accent: #0a0a0a;
+      --success: #1a5c2e;
+      --success-bg: #f0faf3;
+      --error: #8b1a1a;
+      --error-bg: #fdf5f5;
+      --warning: #7a4f00;
+      --warning-bg: #fdf8ed;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--white);
+      color: var(--black);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    .addin-wrap {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .addin-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--white);
+      flex-shrink: 0;
+    }
+    .addin-header-top {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+    .addin-logo {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.3px;
+      color: var(--black);
+    }
+    .addin-logo-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--black);
+      border-radius: 50%;
+      display: inline-block;
+      margin-bottom: 2px;
+    }
+    .addin-subtitle {
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ── Email context strip ── */
+    .email-context {
+      margin: 0 16px 0;
+      padding: 10px 12px;
+      background: var(--light-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      margin-top: 12px;
+      flex-shrink: 0;
+    }
+    .email-context-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .email-context-field {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 3px;
+      align-items: flex-start;
+    }
+    .email-context-field:last-child { margin-bottom: 0; }
+    .ecf-key {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      min-width: 44px;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+    .ecf-val {
+      font-size: 11px;
+      color: var(--dark);
+      font-weight: 500;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+    .ecf-val.loading {
+      color: var(--light-mid);
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    /* ── Nav tabs ── */
+    .addin-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      flex-shrink: 0;
+      margin-top: 12px;
+      background: var(--white);
+    }
+    .nav-tab {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      padding: 8px 0;
+      margin-right: 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .nav-tab:hover { color: var(--dark); }
+    .nav-tab.active {
+      color: var(--black);
+      border-bottom-color: var(--black);
+    }
+
+    /* ── Content panels ── */
+    .addin-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Section headers ── */
+    .section-title {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--black);
+      margin-bottom: 4px;
+    }
+    .section-desc {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 16px 0;
+    }
+
+    /* ── Action cards ── */
+    .action-card {
+      border: 1px solid var(--border);
+      padding: 13px 14px;
+      margin-bottom: 10px;
+      border-radius: 2px;
+      background: var(--white);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .action-card:hover {
+      border-color: #bbb;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .action-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .action-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--black);
+      letter-spacing: 0.01em;
+    }
+    .action-card-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: var(--light-bg);
+      padding: 2px 6px;
+      border-radius: 1px;
+    }
+    .action-card-desc {
+      font-size: 11px;
+      color: var(--mid);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--black);
+      color: var(--white);
+    }
+    .btn-primary:hover { background: var(--dark); }
+    .btn-primary:active { background: #333; }
+    .btn-outline {
+      background: var(--white);
+      color: var(--black);
+      border: 1px solid var(--black);
+    }
+    .btn-outline:hover { background: var(--light-bg); }
+    .btn-sm { padding: 5px 10px; font-size: 10px; }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Attachment list ── */
+    .attachment-list {
+      margin-top: 8px;
+    }
+    .attachment-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      margin-bottom: 6px;
+      background: var(--light-bg);
+      gap: 8px;
+    }
+    .attachment-item-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+    .attachment-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .attachment-name {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .attachment-size {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .attachment-empty {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+      padding: 8px 0;
+    }
+
+    /* ── Template editor ── */
+    .template-list {
+      margin-bottom: 14px;
+    }
+    .template-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.12s;
+      background: var(--white);
+    }
+    .template-item:hover { border-color: #aaa; background: var(--light-bg); }
+    .template-item.selected { border-color: var(--black); background: var(--light-bg); }
+    .template-item-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--dark);
+    }
+    .template-item-preview {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+    .template-item-actions {
+      display: flex;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .template-item-btn {
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      border-radius: 1px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--dark);
+      transition: all 0.12s;
+    }
+    .template-item-btn:hover { border-color: var(--black); color: var(--black); }
+    .template-item-btn.danger:hover { border-color: var(--error); color: var(--error); }
+
+    /* ── Form elements ── */
+    .form-group { margin-bottom: 12px; }
+    .form-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--mid);
+      margin-bottom: 5px;
+    }
+    .form-input, .form-textarea, .form-select {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--black);
+      background: var(--white);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      border-color: var(--black);
+    }
+    .form-textarea {
+      resize: vertical;
+      min-height: 120px;
+      font-family: 'Inter', sans-serif;
+      line-height: 1.5;
+    }
+    .form-textarea.monospace {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+    }
+    .form-hint {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* ── Wildcard chips ── */
+    .wildcard-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    .wildcard-chip {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 3px 8px;
+      background: var(--light-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--dark);
+      cursor: pointer;
+      transition: all 0.12s;
+      user-select: none;
+    }
+    .wildcard-chip:hover {
+      background: var(--black);
+      color: var(--white);
+      border-color: var(--black);
+    }
+    .wildcard-strip-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      width: 100%;
+      margin-bottom: 2px;
+    }
+
+    /* ── Preview panel ── */
+    .preview-box {
+      background: var(--light-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--dark);
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 80px;
+      font-family: 'Inter', sans-serif;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .preview-box .highlight {
+      background: #fff3c4;
+      border-radius: 2px;
+      padding: 0 2px;
+      font-weight: 500;
+    }
+
+    /* ── Toast notifications ── */
+    .toast-container {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .toast {
+      padding: 10px 12px;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: all;
+      animation: toastIn 0.2s ease;
+    }
+    .toast.success { background: var(--success-bg); color: var(--success); border-color: #a8d5b5; }
+    .toast.error { background: var(--error-bg); color: var(--error); border-color: #e8b4b4; }
+    .toast.info { background: var(--light-bg); color: var(--dark); border-color: var(--border); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Settings ── */
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-label { font-size: 12px; font-weight: 500; color: var(--dark); }
+    .settings-row-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--light-mid); }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--border);
+      border-top-color: var(--black);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--muted);
+    }
+    .empty-state-icon { font-size: 28px; margin-bottom: 8px; }
+    .empty-state-text { font-size: 12px; line-height: 1.5; }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.92);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--white);
+      border: 1px solid var(--black);
+      padding: 20px;
+      width: 100%;
+      max-width: 380px;
+      border-radius: 2px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    .modal-title {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 14px;
+      color: var(--black);
+    }
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    .subhead {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .send-options {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+<div class="addin-wrap">
+
+  <!-- Header -->
+  <div class="addin-header">
+    <div class="addin-header-top">
+      <span class="addin-logo">PE Sourcing Suite</span>
+      <span class="addin-logo-dot"></span>
+    </div>
+    <div class="addin-subtitle">Deal Origination Toolkit</div>
+  </div>
+
+  <!-- Email context strip -->
+  <div class="email-context" id="emailContext">
+    <div class="email-context-label">Current Email</div>
+    <div class="email-context-field">
+      <span class="ecf-key">From</span>
+      <span class="ecf-val loading" id="ctx-from">Loading…</span>
+    </div>
+    <div class="email-context-field">
+      <span class="ecf-key">Subj</span>
+      <span class="ecf-val loading" id="ctx-subject">—</span>
+    </div>
+    <div class="email-context-field">
+      <span class="ecf-key">Date</span>
+      <span class="ecf-val loading" id="ctx-date">—</span>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="addin-nav">
+    <button class="nav-tab active" onclick="switchTab('save')" id="tab-save">Save</button>
+    <button class="nav-tab" onclick="switchTab('attachments')" id="tab-attachments">Attachments</button>
+    <button class="nav-tab" onclick="switchTab('reply')" id="tab-reply">Reply</button>
+    <button class="nav-tab" onclick="switchTab('settings')" id="tab-settings">Settings</button>
+  </div>
+
+  <!-- Content -->
+  <div class="addin-content">
+
+    <!-- ── SAVE TAB ── -->
+    <div class="panel active" id="panel-save">
+      <div class="section-title">Save Email</div>
+      <div class="section-desc">Export this email as a formatted PDF to your designated deal folder.</div>
+
+      <div class="action-card">
+        <div class="action-card-header">
+          <span class="action-card-title">Export as PDF</span>
+          <span class="action-card-badge">One-Click</span>
+        </div>
+        <div class="action-card-desc">
+          Generates a clean PDF of the email body, sender details, and timestamp. Filename auto-populates from sender and subject.
+        </div>
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label">Filename Override (optional)</label>
+          <input class="form-input" id="pdf-filename" placeholder="auto: sender_subject_date.pdf" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-save-pdf" onclick="saveEmailAsPDF()">
+            <span>↓</span> Save PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="action-card">
+        <div class="action-card-header">
+          <span class="action-card-title">Copy to Clipboard</span>
+          <span class="action-card-badge">Quick</span>
+        </div>
+        <div class="action-card-desc">
+          Copy a structured plaintext version of the email — useful for pasting into deal notes or CRM.
+        </div>
+        <button class="btn btn-outline" onclick="copyEmailText()">
+          <span>⎘</span> Copy Text
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="subhead">Folder</div>
+      <div style="font-size:11px; color: var(--mid); line-height:1.5; padding: 6px 10px; background: var(--light-bg); border: 1px solid var(--border); border-radius: 2px;">
+        <span id="save-folder-display">Not set — configure in Settings</span>
+      </div>
+    </div>
+
+    <!-- ── ATTACHMENTS TAB ── -->
+    <div class="panel" id="panel-attachments">
+      <div class="section-title">Attachments</div>
+      <div class="section-desc">Download individual attachments or save all at once to your deal folder.</div>
+
+      <div id="attachments-loading" style="display:flex; align-items:center; gap:8px; color:var(--muted); font-size:11px; padding:8px 0;">
+        <span class="spinner"></span> Loading attachments…
+      </div>
+
+      <div id="attachments-list" class="attachment-list" style="display:none;"></div>
+
+      <div id="attachments-empty" style="display:none;">
+        <div class="attachment-empty">No attachments found on this email.</div>
+      </div>
+
+      <div id="attachments-actions" style="display:none; margin-top:10px;">
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveAllAttachments()" id="btn-save-all-att">
+            ↓ Save All
+          </button>
+          <button class="btn btn-outline" onclick="loadAttachments()">
+            ↺ Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="subhead">Folder</div>
+      <div style="font-size:11px; color: var(--mid); line-height:1.5; padding: 6px 10px; background: var(--light-bg); border: 1px solid var(--border); border-radius: 2px;">
+        <span id="att-folder-display">Not set — configure in Settings</span>
+      </div>
+    </div>
+
+    <!-- ── REPLY TAB ── -->
+    <div class="panel" id="panel-reply">
+      <div class="section-title">Reply Templates</div>
+      <div class="section-desc">Deploy prewritten replies with auto-populated wildcards. Use <code style="font-family: 'DM Mono', monospace; font-size:10px;">{{variable}}</code> syntax.</div>
+
+      <div class="template-list" id="template-list"></div>
+
+      <button class="btn btn-outline btn-sm" onclick="openNewTemplateModal()" style="margin-bottom:16px;">
+        + New Template
+      </button>
+
+      <div id="reply-composer" style="display:none;">
+        <div class="divider"></div>
+        <div class="subhead" id="reply-composer-title">Draft Reply</div>
+
+        <div class="form-group">
+          <label class="form-label">Preview (resolved)</label>
+          <div class="preview-box" id="reply-preview">Select a template above to preview.</div>
+        </div>
+
+        <div id="unresolved-fields" style="display:none;">
+          <div class="subhead">Fill In Wildcards</div>
+          <div id="wildcard-inputs"></div>
+        </div>
+
+        <div class="send-options">
+          <button class="btn btn-primary" onclick="sendReply(false)">→ Send Reply</button>
+          <button class="btn btn-outline" onclick="sendReply(true)">Draft Only</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS TAB ── -->
+    <div class="panel" id="panel-settings">
+      <div class="section-title">Settings</div>
+      <div class="section-desc">Configure your deal folders and suite preferences.</div>
+
+      <div class="form-group">
+        <label class="form-label">Email Save Folder Label</label>
+        <input class="form-input" id="setting-email-folder" placeholder="e.g. Deals / Inbound / Q1 2026" />
+        <div class="form-hint">Descriptive label for your reference — PDFs download via browser to your default downloads folder or a browser-prompted location.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Attachment Save Folder Label</label>
+        <input class="form-input" id="setting-att-folder" placeholder="e.g. Deals / Attachments" />
+        <div class="form-hint">Same browser download behavior applies for attachments.</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="subhead">PDF Export Options</div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Include Email Headers</div>
+          <div class="settings-row-sub">From, To, Date, Subject in PDF header block</div>
+        </div>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="setting-include-headers" checked />
+        </label>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Include Firm Watermark</div>
+          <div class="settings-row-sub">Add "PE Sourcing Suite — Confidential" footer</div>
+        </div>
+        <label>
+          <input type="checkbox" id="setting-watermark" checked />
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="form-group">
+        <label class="form-label">Your Name (for wildcard resolution)</label>
+        <input class="form-input" id="setting-your-name" placeholder="e.g. Alex Johnson" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Your Firm Name</label>
+        <input class="form-input" id="setting-firm-name" placeholder="e.g. Apex Capital Partners" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Your Title</label>
+        <input class="form-input" id="setting-your-title" placeholder="e.g. Vice President, Business Development" />
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div><!-- /addin-content -->
+</div><!-- /addin-wrap -->
+
+<!-- ── New Template Modal ── -->
+<div class="modal-overlay" id="modal-template">
+  <div class="modal">
+    <div class="modal-title" id="modal-template-title">New Template</div>
+
+    <div class="form-group">
+      <label class="form-label">Template Name</label>
+      <input class="form-input" id="tmpl-name" placeholder="e.g. Initial Outreach Follow-Up" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Subject Line</label>
+      <input class="form-input" id="tmpl-subject" placeholder="Re: {{original_subject}}" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Body</label>
+      <div class="wildcard-strip">
+        <span class="wildcard-strip-label">Insert wildcard →</span>
+        <span class="wildcard-chip" onclick="insertWildcard('{{first_name}}')">{{first_name}}</span>
+        <span class="wildcard-chip" onclick="insertWildcard('{{last_name}}')">{{last_name}}</span>
+        <span class="wildcard-chip" onclick="insertWildcard('{{company}}')">{{company}}</span>
+        <span class="wildcard-chip" onclick="insertWildcard('{{original_subject}}')">{{original_subject}}</span>
+        <span class="wildcard-chip" onclick="insertWildcard('{{your_name}}')">{{your_name}}</span>
+        <span class="wildcard-chip" onclick="insertWildcard('{{your_firm}}')">{{your_firm}}</span>
+        <span class="wildcard-chip" onclick="insertWildcard('{{your_title}}')">{{your_title}}</span>
+        <span class="wildcard-chip" onclick="insertWildcard('{{date}}')">{{date}}</span>
+        <span class="wildcard-chip" onclick="insertWildcard('{{custom}}')">{{custom}}</span>
+      </div>
+      <textarea class="form-textarea monospace" id="tmpl-body" rows="8"
+        placeholder="Hi {{first_name}},&#10;&#10;Thank you for reaching out regarding {{company}}. We'd love to set up a brief call to learn more about the opportunity.&#10;&#10;Best,&#10;{{your_name}}&#10;{{your_title}} — {{your_firm}}"></textarea>
+      <div class="form-hint">Wildcards in <code>{{double_braces}}</code> will be auto-resolved from context or prompted before sending.</div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeTemplateModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveTemplate()">Save Template</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+const STATE = {
+  emailData: null,
+  attachments: [],
+  templates: [],
+  settings: {},
+  selectedTemplate: null,
+  editingTemplateIdx: null,
+};
+
+// ═══════════════════════════════════════════════════════
+//  OFFICE INIT
+// ═══════════════════════════════════════════════════════
+Office.onReady(async (info) => {
+  if (info.host === Office.HostType.Outlook) {
+    loadSettings();
+    await loadEmailContext();
+    renderTemplates();
+  }
+});
+
+async function loadEmailContext() {
+  const item = Office.context.mailbox.item;
+  if (!item) return;
+
+  // Sender
+  let fromStr = '—';
+  if (item.from) {
+    fromStr = item.from.displayName
+      ? `${item.from.displayName} <${item.from.emailAddress}>`
+      : item.from.emailAddress;
+  }
+
+  // Subject
+  const subject = item.subject || '(no subject)';
+
+  // Date
+  let dateStr = '—';
+  if (item.dateTimeCreated) {
+    dateStr = new Date(item.dateTimeCreated).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+  }
+
+  setState({ emailData: { from: fromStr, subject, date: dateStr, item } });
+
+  setEl('ctx-from', fromStr, false);
+  setEl('ctx-subject', subject, false);
+  setEl('ctx-date', dateStr, false);
+
+  // Load attachments async
+  loadAttachments();
+}
+
+function setState(partial) {
+  Object.assign(STATE, partial);
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+//  SAVE — EMAIL AS PDF
+// ═══════════════════════════════════════════════════════
+async function saveEmailAsPDF() {
+  const btn = document.getElementById('btn-save-pdf');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating…';
+
+  try {
+    const item = Office.context.mailbox.item;
+
+    // Get email body
+    const body = await new Promise((res, rej) => {
+      item.body.getAsync(Office.CoercionType.Text, (result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) res(result.value);
+        else rej(result.error);
+      });
+    });
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+
+    const margin = 56;
+    const pageW = doc.internal.pageSize.getWidth();
+    const contentW = pageW - margin * 2;
+    let y = margin;
+
+    // ── Header block ──
+    const settings = STATE.settings;
+    const includeHeaders = settings.includeHeaders !== false;
+    const watermark = settings.watermark !== false;
+    const firmName = settings.firmName || 'PE Sourcing Suite';
+
+    // Title bar
+    doc.setFillColor(10, 10, 10);
+    doc.rect(margin, y, contentW, 28, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text('DEAL CORRESPONDENCE', margin + 10, y + 18);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(200, 200, 200);
+    doc.text(firmName.toUpperCase(), pageW - margin - 10, y + 18, { align: 'right' });
+
+    y += 38;
+
+    if (includeHeaders && STATE.emailData) {
+      // Meta fields
+      const fields = [
+        ['FROM', STATE.emailData.from],
+        ['DATE', STATE.emailData.date],
+        ['SUBJECT', STATE.emailData.subject],
+      ];
+
+      doc.setDrawColor(220, 220, 220);
+      fields.forEach(([key, val]) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(120, 120, 120);
+        doc.text(key, margin, y);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(20, 20, 20);
+        const lines = doc.splitTextToSize(val, contentW - 50);
+        doc.text(lines, margin + 50, y);
+        y += lines.length * 13 + 4;
+      });
+
+      doc.setDrawColor(10, 10, 10);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y + 4, pageW - margin, y + 4);
+      y += 16;
+    }
+
+    // Body
+    doc.setFont('times', 'normal');
+    doc.setFontSize(10.5);
+    doc.setTextColor(30, 30, 30);
+
+    const paragraphs = body.split('\n').filter(l => l.trim() !== '');
+    paragraphs.forEach(para => {
+      const lines = doc.splitTextToSize(para, contentW);
+      lines.forEach(line => {
+        if (y > doc.internal.pageSize.getHeight() - margin - 24) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(line, margin, y);
+        y += 14;
+      });
+      y += 4;
+    });
+
+    // Footer watermark
+    if (watermark) {
+      const pages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pages; i++) {
+        doc.setPage(i);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(160, 160, 160);
+        doc.text(
+          `${firmName} — Confidential  |  Page ${i} of ${pages}`,
+          pageW / 2,
+          doc.internal.pageSize.getHeight() - 22,
+          { align: 'center' }
+        );
+      }
+    }
+
+    // Filename
+    let filename = document.getElementById('pdf-filename').value.trim();
+    if (!filename) {
+      const d = STATE.emailData;
+      const sender = d ? d.from.split('<')[0].trim().replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20) : 'email';
+      const subj = d ? d.subject.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30) : 'email';
+      const date = new Date().toISOString().slice(0, 10);
+      filename = `${sender}_${subj}_${date}.pdf`;
+    }
+    if (!filename.endsWith('.pdf')) filename += '.pdf';
+
+    doc.save(filename);
+    toast('PDF saved successfully.', 'success');
+  } catch (err) {
+    console.error(err);
+    toast('Failed to generate PDF. ' + (err.message || ''), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>↓</span> Save PDF';
+  }
+}
+
+async function copyEmailText() {
+  try {
+    const item = Office.context.mailbox.item;
+    const body = await new Promise((res, rej) => {
+      item.body.getAsync(Office.CoercionType.Text, (result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) res(result.value);
+        else rej(result.error);
+      });
+    });
+
+    const d = STATE.emailData || {};
+    const text = `FROM: ${d.from || ''}\nDATE: ${d.date || ''}\nSUBJECT: ${d.subject || ''}\n\n${body}`;
+    await navigator.clipboard.writeText(text);
+    toast('Email copied to clipboard.', 'success');
+  } catch (err) {
+    toast('Copy failed. Check browser permissions.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  ATTACHMENTS
+// ═══════════════════════════════════════════════════════
+async function loadAttachments() {
+  const loadingEl = document.getElementById('attachments-loading');
+  const listEl = document.getElementById('attachments-list');
+  const emptyEl = document.getElementById('attachments-empty');
+  const actionsEl = document.getElementById('attachments-actions');
+
+  loadingEl.style.display = 'flex';
+  listEl.style.display = 'none';
+  emptyEl.style.display = 'none';
+  actionsEl.style.display = 'none';
+
+  try {
+    const item = Office.context.mailbox.item;
+    const atts = item.attachments || [];
+    STATE.attachments = atts;
+
+    loadingEl.style.display = 'none';
+
+    if (atts.length === 0) {
+      emptyEl.style.display = 'block';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    atts.forEach((att, idx) => {
+      const icon = getAttIcon(att.name);
+      const size = att.size ? formatBytes(att.size) : '';
+      const row = document.createElement('div');
+      row.className = 'attachment-item';
+      row.innerHTML = `
+        <div class="attachment-item-info">
+          <span class="attachment-icon">${icon}</span>
+          <div>
+            <div class="attachment-name" title="${att.name}">${att.name}</div>
+            ${size ? `<div class="attachment-size">${size}</div>` : ''}
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="downloadAttachment(${idx})">↓</button>
+      `;
+      listEl.appendChild(row);
+    });
+
+    listEl.style.display = 'block';
+    actionsEl.style.display = 'block';
+  } catch (err) {
+    loadingEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    emptyEl.querySelector('.attachment-empty').textContent = 'Unable to load attachments.';
+  }
+}
+
+function downloadAttachment(idx) {
+  const att = STATE.attachments[idx];
+  if (!att) return;
+
+  // Use EWS to get attachment content
+  Office.context.mailbox.getCallbackTokenAsync({ isRest: false }, (tokenResult) => {
+    if (tokenResult.status !== Office.AsyncResultStatus.Succeeded) {
+      toast('Auth error — try again.', 'error');
+      return;
+    }
+
+    Office.context.mailbox.item.getAttachmentContentAsync(att.id, (result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        toast('Could not retrieve attachment.', 'error');
+        return;
+      }
+
+      const content = result.value;
+      let blob;
+      if (content.format === Office.MailboxEnums.AttachmentContentFormat.Base64) {
+        const binary = atob(content.content);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        blob = new Blob([bytes]);
+      } else {
+        blob = new Blob([content.content]);
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = att.name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+      toast(`"${att.name}" downloaded.`, 'success');
+    });
+  });
+}
+
+function saveAllAttachments() {
+  if (STATE.attachments.length === 0) return;
+  STATE.attachments.forEach((_, idx) => {
+    setTimeout(() => downloadAttachment(idx), idx * 800);
+  });
+  toast(`Downloading ${STATE.attachments.length} attachment(s)…`, 'info');
+}
+
+// ═══════════════════════════════════════════════════════
+//  REPLY TEMPLATES
+// ═══════════════════════════════════════════════════════
+function renderTemplates() {
+  const listEl = document.getElementById('template-list');
+  listEl.innerHTML = '';
+
+  if (STATE.templates.length === 0) {
+    listEl.innerHTML = `<div class="empty-state" style="padding:20px 0 10px;">
+      <div class="empty-state-icon">✉</div>
+      <div class="empty-state-text">No templates yet.<br>Create one to get started.</div>
+    </div>`;
+    return;
+  }
+
+  STATE.templates.forEach((tmpl, idx) => {
+    const item = document.createElement('div');
+    item.className = 'template-item' + (STATE.selectedTemplate === idx ? ' selected' : '');
+    item.innerHTML = `
+      <div onclick="selectTemplate(${idx})" style="flex:1; min-width:0;">
+        <div class="template-item-name">${escHtml(tmpl.name)}</div>
+        <div class="template-item-preview">${escHtml(tmpl.body.slice(0, 60))}…</div>
+      </div>
+      <div class="template-item-actions">
+        <button class="template-item-btn" onclick="editTemplate(${idx}, event)">Edit</button>
+        <button class="template-item-btn danger" onclick="deleteTemplate(${idx}, event)">✕</button>
+      </div>
+    `;
+    listEl.appendChild(item);
+  });
+}
+
+function selectTemplate(idx) {
+  STATE.selectedTemplate = idx;
+  renderTemplates();
+
+  const tmpl = STATE.templates[idx];
+  const composerEl = document.getElementById('reply-composer');
+  composerEl.style.display = 'block';
+  document.getElementById('reply-composer-title').textContent = `→ ${tmpl.name}`;
+
+  buildReplyPreview(tmpl);
+}
+
+function buildReplyPreview(tmpl) {
+  const settings = STATE.settings;
+  const d = STATE.emailData || {};
+
+  // Auto-resolve known wildcards
+  const autoVars = {
+    your_name: settings.yourName || '{{your_name}}',
+    your_firm: settings.firmName || '{{your_firm}}',
+    your_title: settings.yourTitle || '{{your_title}}',
+    original_subject: d.subject || '{{original_subject}}',
+    date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+  };
+
+  let body = tmpl.body;
+  Object.entries(autoVars).forEach(([k, v]) => {
+    body = body.replaceAll(`{{${k}}}`, v);
+  });
+
+  // Find remaining wildcards
+  const remaining = [...new Set((body.match(/\{\{([^}]+)\}\}/g) || []).map(m => m.replace(/[{}]/g, '')))];
+
+  // Render preview with highlights
+  const previewEl = document.getElementById('reply-preview');
+  let previewHtml = escHtml(body).replace(
+    /\{\{([^}]+)\}\}/g,
+    (_, name) => `<span class="highlight">{{${name}}}</span>`
+  );
+  previewEl.innerHTML = previewHtml;
+
+  // Build input fields for remaining wildcards
+  const inputsEl = document.getElementById('wildcard-inputs');
+  const unresolvedEl = document.getElementById('unresolved-fields');
+
+  if (remaining.length > 0) {
+    unresolvedEl.style.display = 'block';
+    inputsEl.innerHTML = '';
+    remaining.forEach(name => {
+      const group = document.createElement('div');
+      group.className = 'form-group';
+      group.innerHTML = `
+        <label class="form-label">{{${name}}}</label>
+        <input class="form-input" id="wc-${name}" placeholder="Enter ${name.replace(/_/g,' ')}"
+          oninput="updatePreview()" />
+      `;
+      inputsEl.appendChild(group);
+    });
+  } else {
+    unresolvedEl.style.display = 'none';
+  }
+
+  STATE._resolvedBody = body;
+  STATE._remainingWc = remaining;
+}
+
+function updatePreview() {
+  if (STATE.selectedTemplate === null) return;
+  const tmpl = STATE.templates[STATE.selectedTemplate];
+  const settings = STATE.settings;
+  const d = STATE.emailData || {};
+
+  const autoVars = {
+    your_name: settings.yourName || '',
+    your_firm: settings.firmName || '',
+    your_title: settings.yourTitle || '',
+    original_subject: d.subject || '',
+    date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+  };
+
+  let body = tmpl.body;
+  Object.entries(autoVars).forEach(([k, v]) => { body = body.replaceAll(`{{${k}}}`, v); });
+
+  // Apply user inputs
+  (STATE._remainingWc || []).forEach(name => {
+    const inputEl = document.getElementById(`wc-${name}`);
+    if (inputEl && inputEl.value) {
+      body = body.replaceAll(`{{${name}}}`, inputEl.value);
+    }
+  });
+
+  const previewEl = document.getElementById('reply-preview');
+  previewEl.innerHTML = escHtml(body).replace(
+    /\{\{([^}]+)\}\}/g,
+    (_, name) => `<span class="highlight">{{${name}}}</span>`
+  );
+  STATE._resolvedBody = body;
+}
+
+function sendReply(draftOnly = false) {
+  updatePreview();
+  const body = STATE._resolvedBody || '';
+  const tmpl = STATE.templates[STATE.selectedTemplate];
+  if (!tmpl) return;
+
+  const settings = STATE.settings;
+  const d = STATE.emailData || {};
+
+  // Resolve subject
+  let subject = (tmpl.subject || '').replaceAll('{{original_subject}}', d.subject || '');
+  Object.entries({
+    your_name: settings.yourName || '',
+    your_firm: settings.firmName || '',
+    your_title: settings.yourTitle || '',
+    date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+  }).forEach(([k, v]) => { subject = subject.replaceAll(`{{${k}}}`, v); });
+
+  (STATE._remainingWc || []).forEach(name => {
+    const inputEl = document.getElementById(`wc-${name}`);
+    if (inputEl && inputEl.value) subject = subject.replaceAll(`{{${name}}}`, inputEl.value);
+  });
+
+  if (draftOnly) {
+    // Compose a new email as draft
+    Office.context.mailbox.displayNewMessageForm({
+      toRecipients: [],
+      subject: subject || `Re: ${d.subject || ''}`,
+      htmlBody: `<pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${escHtml(body)}</pre>`,
+    });
+    toast('Draft opened in new compose window.', 'info');
+  } else {
+    // Reply to current email
+    Office.context.mailbox.item.displayReplyForm({
+      htmlBody: `<pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${escHtml(body)}</pre>`,
+    });
+    toast('Reply opened — review and send.', 'success');
+  }
+}
+
+// ── Template CRUD ──
+function openNewTemplateModal() {
+  STATE.editingTemplateIdx = null;
+  document.getElementById('modal-template-title').textContent = 'New Template';
+  document.getElementById('tmpl-name').value = '';
+  document.getElementById('tmpl-subject').value = '';
+  document.getElementById('tmpl-body').value = '';
+  document.getElementById('modal-template').classList.add('open');
+}
+
+function editTemplate(idx, e) {
+  e.stopPropagation();
+  const tmpl = STATE.templates[idx];
+  STATE.editingTemplateIdx = idx;
+  document.getElementById('modal-template-title').textContent = 'Edit Template';
+  document.getElementById('tmpl-name').value = tmpl.name;
+  document.getElementById('tmpl-subject').value = tmpl.subject || '';
+  document.getElementById('tmpl-body').value = tmpl.body;
+  document.getElementById('modal-template').classList.add('open');
+}
+
+function deleteTemplate(idx, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this template?')) return;
+  STATE.templates.splice(idx, 1);
+  if (STATE.selectedTemplate === idx) {
+    STATE.selectedTemplate = null;
+    document.getElementById('reply-composer').style.display = 'none';
+  } else if (STATE.selectedTemplate > idx) {
+    STATE.selectedTemplate--;
+  }
+  saveTemplates();
+  renderTemplates();
+  toast('Template deleted.', 'info');
+}
+
+function saveTemplate() {
+  const name = document.getElementById('tmpl-name').value.trim();
+  const subject = document.getElementById('tmpl-subject').value.trim();
+  const body = document.getElementById('tmpl-body').value.trim();
+
+  if (!name) { toast('Template name required.', 'error'); return; }
+  if (!body) { toast('Template body required.', 'error'); return; }
+
+  const tmpl = { name, subject, body };
+
+  if (STATE.editingTemplateIdx !== null) {
+    STATE.templates[STATE.editingTemplateIdx] = tmpl;
+    toast('Template updated.', 'success');
+  } else {
+    STATE.templates.push(tmpl);
+    toast('Template saved.', 'success');
+  }
+
+  saveTemplates();
+  renderTemplates();
+  closeTemplateModal();
+}
+
+function closeTemplateModal() {
+  document.getElementById('modal-template').classList.remove('open');
+}
+
+function insertWildcard(token) {
+  const ta = document.getElementById('tmpl-body');
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + token.length;
+  ta.focus();
+}
+
+// ═══════════════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════════════
+function loadSettings() {
+  try {
+    const raw = Office.context.roamingSettings.get('pe_suite_settings');
+    STATE.settings = raw ? JSON.parse(raw) : {};
+    const tmplRaw = Office.context.roamingSettings.get('pe_suite_templates');
+    STATE.templates = tmplRaw ? JSON.parse(tmplRaw) : getDefaultTemplates();
+  } catch {
+    STATE.settings = {};
+    STATE.templates = getDefaultTemplates();
+  }
+
+  // Populate settings form
+  const s = STATE.settings;
+  setInputVal('setting-email-folder', s.emailFolder || '');
+  setInputVal('setting-att-folder', s.attFolder || '');
+  setInputVal('setting-your-name', s.yourName || '');
+  setInputVal('setting-firm-name', s.firmName || '');
+  setInputVal('setting-your-title', s.yourTitle || '');
+  setCheckbox('setting-include-headers', s.includeHeaders !== false);
+  setCheckbox('setting-watermark', s.watermark !== false);
+
+  // Update folder displays
+  updateFolderDisplays();
+}
+
+function saveSettings() {
+  STATE.settings = {
+    emailFolder: getInputVal('setting-email-folder'),
+    attFolder: getInputVal('setting-att-folder'),
+    yourName: getInputVal('setting-your-name'),
+    firmName: getInputVal('setting-firm-name'),
+    yourTitle: getInputVal('setting-your-title'),
+    includeHeaders: document.getElementById('setting-include-headers').checked,
+    watermark: document.getElementById('setting-watermark').checked,
+  };
+  Office.context.roamingSettings.set('pe_suite_settings', JSON.stringify(STATE.settings));
+  Office.context.roamingSettings.saveAsync((result) => {
+    if (result.status === Office.AsyncResultStatus.Succeeded) {
+      toast('Settings saved.', 'success');
+      updateFolderDisplays();
+    } else {
+      toast('Save failed. Try again.', 'error');
+    }
+  });
+}
+
+function saveTemplates() {
+  Office.context.roamingSettings.set('pe_suite_templates', JSON.stringify(STATE.templates));
+  Office.context.roamingSettings.saveAsync(() => {});
+}
+
+function updateFolderDisplays() {
+  const ef = STATE.settings.emailFolder;
+  const af = STATE.settings.attFolder;
+  setEl('save-folder-display', ef ? `📁 ${ef}` : 'Not set — configure in Settings', false);
+  setEl('att-folder-display', af ? `📁 ${af}` : 'Not set — configure in Settings', false);
+}
+
+function getDefaultTemplates() {
+  return [
+    {
+      name: 'Initial Outreach Follow-Up',
+      subject: 'Re: {{original_subject}}',
+      body: `Hi {{first_name}},
+
+Thank you for reaching out. We would love to learn more about {{company}} and whether there might be a fit with our current investment focus.
+
+Would you be available for a brief call in the coming week?
+
+Best regards,
+{{your_name}}
+{{your_title}} — {{your_firm}}`
+    },
+    {
+      name: 'Deal Pass (Respectful)',
+      subject: 'Re: {{original_subject}}',
+      body: `Hi {{first_name}},
+
+Thank you for thinking of us on {{company}}. After careful review, the opportunity falls outside our current mandate, and we will be passing at this time.
+
+We appreciate your continued outreach and hope to find alignment on a future deal.
+
+Best,
+{{your_name}}
+{{your_firm}}`
+    },
+    {
+      name: 'Request for CIM / Teaser',
+      subject: 'Re: {{original_subject}} — Materials Request',
+      body: `Hi {{first_name}},
+
+Thanks for the intro on {{company}} — the sector and profile are interesting. Could you please share the CIM or teaser when available?
+
+Happy to circle back with initial feedback within a few days of receipt.
+
+Best,
+{{your_name}}
+{{your_title}} — {{your_firm}}`
+    }
+  ];
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════
+function toast(msg, type = 'info', duration = 3000) {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = { success: '✓', error: '✕', info: '○' };
+  el.innerHTML = `<span>${icons[type] || '●'}</span> ${escHtml(msg)}`;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, duration);
+}
+
+function setEl(id, text, html = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('loading');
+  if (html) el.innerHTML = text;
+  else el.textContent = text;
+}
+
+function getInputVal(id) { return (document.getElementById(id) || {}).value || ''; }
+function setInputVal(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
+function setCheckbox(id, checked) { const el = document.getElementById(id); if (el) el.checked = checked; }
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getAttIcon(name = '') {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', ppt: '📋', pptx: '📋',
+    zip: '🗜', png: '🖼', jpg: '🖼', jpeg: '🖼', gif: '🖼', mp4: '🎬', mp3: '🎵', txt: '📃' };
+  return map[ext] || '📎';
+}
+</script>
+</body>
+</html>
