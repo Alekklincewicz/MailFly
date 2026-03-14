@@ -7,11 +7,11 @@
   xsi:type="MailApp">
 
   <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
-  <Version>1.0.0.0</Version>
-  <ProviderName>PE Sourcing Suite</ProviderName>
+  <Version>1.1.0.0</Version>
+  <ProviderName>MailFly</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="PE Sourcing Suite"/>
-  <Description DefaultValue="Private Equity deal origination tools for Outlook — save emails, manage attachments, and deploy reply templates."/>
+  <DisplayName DefaultValue="MailFly"/>
+  <Description DefaultValue="MailFly — Deal origination tools for Outlook. Save emails, manage attachments, and deploy reply templates."/>
   <IconUrl DefaultValue="https://alekklincewicz.github.io/MailFly/assets/QMG64.png"/>
   <HighResolutionIconUrl DefaultValue="https://alekklincewicz.github.io/MailFly/assets/QMG128.png"/>
   <SupportUrl DefaultValue="https://alekklincewicz.github.io/MailFly"/>
@@ -33,7 +33,7 @@
     <Form xsi:type="ItemRead">
       <DesktopSettings>
         <SourceLocation DefaultValue="https://alekklincewicz.github.io/MailFly/taskpane.html"/>
-        <RequestedHeight>450</RequestedHeight>
+        <RequestedHeight>550</RequestedHeight>
       </DesktopSettings>
     </Form>
   </FormSettings>
@@ -52,13 +52,10 @@
         <bt:Set Name="Mailbox"/>
       </bt:Sets>
     </Requirements>
-
     <Hosts>
       <Host xsi:type="MailHost">
         <DesktopFormFactor>
           <FunctionFile resid="Commands.Url"/>
-
-          <!-- Read surface: ribbon button -->
           <ExtensionPoint xsi:type="MessageReadCommandSurface">
             <OfficeTab id="TabDefault">
               <Group id="msgReadGroup">
@@ -82,8 +79,6 @@
               </Group>
             </OfficeTab>
           </ExtensionPoint>
-
-          <!-- Compose surface -->
           <ExtensionPoint xsi:type="MessageComposeCommandSurface">
             <OfficeTab id="TabDefault">
               <Group id="msgComposeGroup">
@@ -107,11 +102,9 @@
               </Group>
             </OfficeTab>
           </ExtensionPoint>
-
         </DesktopFormFactor>
       </Host>
     </Hosts>
-
     <Resources>
       <bt:Images>
         <bt:Image id="Icon.16x16" DefaultValue="https://alekklincewicz.github.io/MailFly/assets/QMG16.png"/>
@@ -123,11 +116,11 @@
         <bt:Url id="Taskpane.Url" DefaultValue="https://alekklincewicz.github.io/MailFly/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GroupLabel" DefaultValue="PE Sourcing Suite"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="PE Suite"/>
+        <bt:String id="GroupLabel" DefaultValue="MailFly"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="MailFly"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open the PE Sourcing Suite panel to save emails, attachments, and deploy reply templates."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open MailFly — save emails, manage attachments, and deploy reply templates."/>
       </bt:LongStrings>
     </Resources>
     </VersionOverrides>
