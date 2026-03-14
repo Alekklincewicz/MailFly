@@ -33,7 +33,7 @@
     <Form xsi:type="ItemRead">
       <DesktopSettings>
         <SourceLocation DefaultValue="https://alekklincewicz.github.io/MailFly/taskpane.html"/>
-        <RequestedHeight>550</RequestedHeight>
+        <RequestedHeight>500</RequestedHeight>
       </DesktopSettings>
     </Form>
   </FormSettings>
