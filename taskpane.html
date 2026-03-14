@@ -547,6 +547,43 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
         </div>
       </div>
 
+      <div class="section-label">Save Location</div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="form-group">
+          <label class="form-label">Save Folder Path</label>
+          <input class="form-input" id="s-folder" placeholder="e.g. C:\Deals\Inbound or ~/Deals/Inbound"/>
+          <div class="form-hint">Reference label for your records. Files download via browser to your configured downloads folder — set your browser to ask for location each time to route saves manually.</div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Attachment Subfolder</label>
+          <input class="form-input" id="s-att-folder" placeholder="e.g. Attachments (appended to folder path)"/>
+          <div class="form-hint">Optional subfolder name for attachment saves, appended to the path above.</div>
+        </div>
+      </div>
+
+      <div class="section-label">Filename Rules</div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="form-group">
+          <label class="form-label">Filename Pattern</label>
+          <input class="form-input" id="s-filename-pattern" placeholder="e.g. {date}_{sender}_{subject}"/>
+          <div class="form-hint">Tokens: <code style="font-family:'DM Mono',monospace;font-size:10px">{date}</code> <code style="font-family:'DM Mono',monospace;font-size:10px">{sender}</code> <code style="font-family:'DM Mono',monospace;font-size:10px">{sender_email}</code> <code style="font-family:'DM Mono',monospace;font-size:10px">{subject}</code> <code style="font-family:'DM Mono',monospace;font-size:10px">{firm}</code></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date Format</label>
+          <select class="form-select" id="s-date-format">
+            <option value="YYYY-MM-DD">YYYY-MM-DD (2026-03-14)</option>
+            <option value="MM-DD-YYYY">MM-DD-YYYY (03-14-2026)</option>
+            <option value="YYYYMMDD">YYYYMMDD (20260314)</option>
+            <option value="MMM-DD-YYYY">MMM-DD-YYYY (Mar-14-2026)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Max Subject Length</label>
+          <input class="form-input" id="s-subj-len" type="number" min="10" max="80" placeholder="40" style="width:80px"/>
+          <div class="form-hint">Characters of subject line to include in filename (10–80).</div>
+        </div>
+      </div>
+
       <div class="section-label">PDF Export</div>
       <div class="card" style="margin-bottom:14px">
         <div class="toggle-row">
@@ -565,15 +602,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
         </div>
       </div>
 
-      <div class="section-label">Keyboard Shortcuts (reference)</div>
+      <div class="section-label">Keyboard Shortcuts</div>
       <div class="card" style="margin-bottom:14px">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:10px;line-height:1.5">
+          Assign multi-key shortcuts to templates using <code style="font-family:'DM Mono',monospace">+</code> between keys.<br>
+          Examples: <code style="font-family:'DM Mono',monospace;font-size:10px">alt+m</code>, <code style="font-family:'DM Mono',monospace;font-size:10px">ctrl+shift+1</code>, <code style="font-family:'DM Mono',monospace;font-size:10px">alt+f</code>
+        </div>
         <div class="shortcut-item">
           <span class="shortcut-name">Open MailFly panel</span>
           <span class="shortcut-key">Ribbon → MailFly</span>
-        </div>
-        <div class="shortcut-item">
-          <span class="shortcut-name">Quick template shortcuts</span>
-          <span class="shortcut-key">Set per template ↓</span>
         </div>
         <div id="shortcut-list"></div>
       </div>
@@ -807,6 +844,45 @@ function downloadAttachment(idx) {
   });
 }
 
+function buildFilename(ext) {
+  const s = S.settings;
+  const d = S.email || {};
+  const pattern = s.filenamePattern || '{date}_{sender}_{subject}';
+  const dateFormat = s.dateFormat || 'YYYY-MM-DD';
+  const subjLen = s.subjLen || 40;
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const yyyy = now.getFullYear();
+  const mm = pad(now.getMonth()+1);
+  const dd = pad(now.getDate());
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const dateStr = {
+    'YYYY-MM-DD': `${yyyy}-${mm}-${dd}`,
+    'MM-DD-YYYY': `${mm}-${dd}-${yyyy}`,
+    'YYYYMMDD':   `${yyyy}${mm}${dd}`,
+    'MMM-DD-YYYY':`${months[now.getMonth()]}-${dd}-${yyyy}`,
+  }[dateFormat] || `${yyyy}-${mm}-${dd}`;
+
+  const senderRaw = (d.from||'').split('<')[0].trim() || (d.from||'email');
+  const senderEmailRaw = ((d.from||'').match(/<([^>]+)>/) || [])[1] || senderRaw;
+  const clean = str => str.replace(/[^a-zA-Z0-9_\-]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+
+  const tokens = {
+    date:         dateStr,
+    sender:       clean(senderRaw).slice(0,24),
+    sender_email: clean(senderEmailRaw).slice(0,30),
+    subject:      clean(d.subject||'email').slice(0, subjLen),
+    firm:         clean(s.firmName||'MailFly').slice(0,20),
+  };
+
+  let name = pattern;
+  Object.entries(tokens).forEach(([k,v]) => { name = name.replaceAll(`{${k}}`, v); });
+  name = name.replace(/[^a-zA-Z0-9_\-]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  return name + '.' + ext;
+}
+
 async function saveEmailAsPDF() {
   const btn = document.getElementById('btn-save-pdf') || document.querySelector('[onclick="saveEmailAsPDF()"]');
   if (btn) { btn.disabled = true; }
@@ -866,10 +942,7 @@ async function saveEmailAsPDF() {
       }
     }
 
-    const d = S.email || {};
-    const sender = (d.from||'email').split('<')[0].trim().replace(/[^a-zA-Z0-9]/g,'_').slice(0,20);
-    const subj = (d.subject||'email').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
-    doc.save(`${sender}_${subj}_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(buildFilename('pdf'));
     toast('Email saved as PDF.', 'success');
   } catch (err) {
     toast('PDF generation failed: ' + (err.message||''), 'error');
@@ -1062,12 +1135,60 @@ function renderShortcutList() {
   const el = document.getElementById('shortcut-list');
   if (!el) return;
   el.innerHTML = '';
-  S.templates.filter(t => t.shortcut).forEach(t => {
+  const withShortcuts = S.templates.filter(t => t.shortcut);
+  if (!withShortcuts.length) {
+    el.innerHTML = '<div style="font-size:10px;color:var(--text-muted);padding:4px 0">No shortcuts assigned. Edit a template to add one.</div>';
+    return;
+  }
+  withShortcuts.forEach(t => {
+    const keys = t.shortcut.toLowerCase().split('+').map(k => k.trim());
+    const keyHtml = keys.map(k => `<span class="shortcut-key" style="margin-left:2px">${esc(k)}</span>`).join('<span style="color:var(--text-muted);font-size:10px;margin:0 1px">+</span>');
     const row = document.createElement('div');
     row.className = 'shortcut-item';
-    row.innerHTML = `<span class="shortcut-name">${esc(t.name)}</span><span class="shortcut-key">${esc(t.shortcut)}</span>`;
+    row.innerHTML = `<span class="shortcut-name">${esc(t.name)}</span><span style="display:flex;align-items:center">${keyHtml}</span>`;
     el.appendChild(row);
   });
+}
+
+// ── KEYBOARD SHORTCUT REGISTRATION ──────────────────────────────────────────
+function registerShortcuts() {
+  // Remove old listener if exists
+  if (window._mfShortcutHandler) {
+    document.removeEventListener('keydown', window._mfShortcutHandler);
+  }
+
+  const bindings = S.templates
+    .filter(t => t.shortcut)
+    .map((t, idx) => ({
+      keys: t.shortcut.toLowerCase().split('+').map(k => k.trim()),
+      tmplIdx: S.templates.indexOf(t),
+    }));
+
+  if (!bindings.length) return;
+
+  window._mfShortcutHandler = function(e) {
+    const pressed = [];
+    if (e.ctrlKey) pressed.push('ctrl');
+    if (e.altKey) pressed.push('alt');
+    if (e.shiftKey) pressed.push('shift');
+    if (e.metaKey) pressed.push('meta');
+    const key = e.key.toLowerCase();
+    if (!['control','alt','shift','meta'].includes(key)) pressed.push(key);
+
+    for (const binding of bindings) {
+      const match = binding.keys.every(k => pressed.includes(k)) && pressed.length === binding.keys.length;
+      if (match) {
+        e.preventDefault();
+        // Switch to reply tab and select template
+        switchTab('reply');
+        selectTmpl(binding.tmplIdx);
+        toast(`Shortcut: ${S.templates[binding.tmplIdx].name}`, 'info', 1800);
+        return;
+      }
+    }
+  };
+
+  document.addEventListener('keydown', window._mfShortcutHandler);
 }
 
 // ═══════════════════════════════
@@ -1084,21 +1205,38 @@ function loadSettings() {
   setVal('s-name', s.yourName||'');
   setVal('s-firm', s.firmName||'');
   setVal('s-title', s.yourTitle||'');
+  setVal('s-folder', s.saveFolder||'');
+  setVal('s-att-folder', s.attFolder||'');
+  setVal('s-filename-pattern', s.filenamePattern||'{date}_{sender}_{subject}');
+  setVal('s-subj-len', s.subjLen||'40');
+  const df = document.getElementById('s-date-format');
+  if (df) df.value = s.dateFormat||'YYYY-MM-DD';
   setChk('s-headers', s.includeHeaders !== false);
   setChk('s-watermark', s.watermark !== false);
+  registerShortcuts();
 }
 
 function saveSettings() {
   S.settings = {
-    yourName: getVal('s-name'), firmName: getVal('s-firm'), yourTitle: getVal('s-title'),
+    yourName: getVal('s-name'),
+    firmName: getVal('s-firm'),
+    yourTitle: getVal('s-title'),
+    saveFolder: getVal('s-folder'),
+    attFolder: getVal('s-att-folder'),
+    filenamePattern: getVal('s-filename-pattern') || '{date}_{sender}_{subject}',
+    dateFormat: (document.getElementById('s-date-format')||{}).value || 'YYYY-MM-DD',
+    subjLen: parseInt(getVal('s-subj-len'))||40,
     includeHeaders: document.getElementById('s-headers').checked,
     watermark: document.getElementById('s-watermark').checked,
   };
   Office.context.roamingSettings.set('mf_settings', JSON.stringify(S.settings));
   Office.context.roamingSettings.saveAsync(r => {
-    r.status === Office.AsyncResultStatus.Succeeded
-      ? toast('Settings saved.','success')
-      : toast('Save failed.','error');
+    if (r.status === Office.AsyncResultStatus.Succeeded) {
+      toast('Settings saved.','success');
+      registerShortcuts();
+    } else {
+      toast('Save failed.','error');
+    }
   });
 }
 
